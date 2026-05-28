@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ChainProof — Blockchain File Verification</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ═══ TOKENS ═══ */
+:root{
+  --sans:'Plus Jakarta Sans',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --ease:cubic-bezier(.22,.68,0,1.2);
+  --ease2:cubic-bezier(.4,0,.2,1);
+  --dur:.28s;
+
+  --bg:#060810;
+  --bg2:#0b0e1a;
+  --bg3:#101422;
+  --bg4:#151929;
+  --bg5:#1a1f32;
+  --surface:rgba(11,14,26,.9);
+  --b1:rgba(80,120,255,.1);
+  --b2:rgba(80,120,255,.18);
+  --b3:rgba(80,120,255,.32);
+  --t1:#eceef8;
+  --t2:#8891b4;
+  --t3:#424868;
+
+  --blue:#5078ff;
+  --blue-l:#7b9bff;
+  --blue-g:rgba(80,120,255,.14);
+  --blue-b:rgba(80,120,255,.32);
+
+  --green:#0fcc95;
+  --green-l:#2ffab8;
+  --green-g:rgba(15,204,149,.11);
+  --green-b:rgba(15,204,149,.28);
+
+  --red:#ff4d77;
+  --red-g:rgba(255,77,119,.11);
+  --red-b:rgba(255,77,119,.28);
+
+  --amber:#ffa940;
+  --amber-g:rgba(255,169,64,.1);
+  --amber-b:rgba(255,169,64,.28);
+
+  --violet:#9d5dff;
+  --violet-g:rgba(157,93,255,.11);
+  --violet-b:rgba(157,93,255,.28);
+
+  --cyan:#22ccee;
+  --cyan-g:rgba(34,204,238,.09);
+  --cyan-b:rgba(34,204,238,.26);
+
+  --r:10px;--rl:16px;--rx:22px;
+  --sh:0 24px 64px rgba(0,0,0,.6);
+  --sh2:0 4px 20px rgba(0,0,0,.35);
+}
+
+[data-theme="light"]{
+  --bg:#f0f2fa;
+  --bg2:#e8eaf5;
+  --bg3:#dfe3f4;
+  --bg4:#d6daf0;
+  --bg5:#cdd2eb;
+  --surface:rgba(240,242,250,.92);
+  --b1:rgba(80,120,255,.1);
+  --b2:rgba(80,120,255,.2);
+  --b3:rgba(80,120,255,.38);
+  --t1:#0d1020;
+  --t2:#3a4060;
+  --t3:#7880a0;
+  --blue-g:rgba(80,120,255,.09);
+  --green-g:rgba(15,204,149,.08);
+  --red-g:rgba(255,77,119,.08);
+  --amber-g:rgba(255,169,64,.08);
+  --violet-g:rgba(157,93,255,.08);
+  --cyan-g:rgba(34,204,238,.07);
+  --sh:0 24px 64px rgba(80,120,255,.13);
+  --sh2:0 4px 20px rgba(80,120,255,.1);
+}
+
+/* ═══ BASE ═══ */
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);min-height:100vh;font-size:14px;line-height:1.6;overflow-x:hidden;transition:background var(--dur) var(--ease2),color var(--dur) var(--ease2)}
+
+/* Grid */
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--b1) 1px,transparent 1px),linear-gradient(90deg,var(--b1) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+
+/* Orbs */
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
+.o1{width:800px;height:800px;background:radial-gradient(circle,rgba(80,120,255,.065),transparent 70%);top:-300px;right:-200px;animation:of1 20s ease-in-out infinite}
+.o2{width:600px;height:600px;background:radial-gradient(circle,rgba(15,204,149,.045),transparent 70%);bottom:-200px;left:-150px;animation:of2 25s ease-in-out infinite}
+.o3{width:400px;height:400px;background:radial-gradient(circle,rgba(157,93,255,.035),transparent 70%);top:45%;left:35%;animation:of3 30s ease-in-out infinite}
+@keyframes of1{0%,100%{transform:translate(0,0)}33%{transform:translate(-40px,25px)}66%{transform:translate(25px,-35px)}}
+@keyframes of2{0%,100%{transform:translate(0,0)}50%{transform:translate(45px,-35px)}}
+@keyframes of3{0%,100%{transform:translate(0,0)}50%{transform:translate(-25px,45px)}}
+
+/* ═══ HEADER ═══ */
+header{position:sticky;top:0;z-index:200;background:var(--surface);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border-bottom:1px solid var(--b1);height:56px;display:flex;align-items:center;padding:0 20px;gap:14px;transition:background var(--dur) var(--ease2)}
+
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0;cursor:pointer}
+.logo-mark{width:32px;height:32px;flex-shrink:0}
+.logo-svg{width:32px;height:32px}
+.logo-bg-rect{fill:url(#lg)}
+.logo-icon{fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.logo-wm{display:flex;flex-direction:column}
+.logo-name{font-size:14px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(135deg,var(--t1) 30%,var(--blue-l));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1}
+.logo-sub{font-family:var(--mono);font-size:8px;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;-webkit-text-fill-color:var(--t3);line-height:1}
+
+.nav-wrap{flex:1;overflow-x:auto;scrollbar-width:none}
+.nav-wrap::-webkit-scrollbar{display:none}
+.nav-pills{display:flex;gap:2px;background:var(--bg3);border:1px solid var(--b1);border-radius:13px;padding:3px;width:max-content}
+.np{padding:5px 12px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:var(--t3);border:none;transition:all var(--dur) var(--ease2);font-family:var(--sans);white-space:nowrap;letter-spacing:-.1px}
+.np:hover{color:var(--t2)}
+.np.on{background:var(--blue);color:#fff;box-shadow:0 2px 16px var(--blue-g)}
+.np.on.g{background:linear-gradient(135deg,#059669,var(--green))}
+.np.on.a{background:linear-gradient(135deg,#d97706,var(--amber))}
+
+.hbar{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.theme-toggle{width:32px;height:32px;border-radius:9px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;display:grid;place-items:center;transition:all var(--dur);flex-shrink:0}
+.theme-toggle:hover{border-color:var(--b3);color:var(--t1)}
+.i-sun{display:none}
+[data-theme="light"] .i-moon{display:none}
+[data-theme="light"] .i-sun{display:block}
+
+.net{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:var(--green-g);border:1px solid var(--green-b);font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:.4px;white-space:nowrap}
+.ndot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.wbtn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:9px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all var(--dur);font-family:var(--sans);white-space:nowrap}
+.wbtn:hover{border-color:var(--b3);color:var(--t1)}
+.wdot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex-shrink:0;transition:all .3s}
+.wdot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+
+/* ═══ MAIN ═══ */
+main{max-width:900px;margin:0 auto;padding:28px 16px 80px;position:relative;z-index:1}
+
+/* ═══ PANELS ═══ */
+.panel{display:none;animation:su .3s var(--ease) both}
+.panel.on{display:block}
+@keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════════════════
+   DASHBOARD HOME
+═══════════════════════════ */
+.dash-hero{padding:44px 0 36px;text-align:center;position:relative}
+.hero-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:var(--blue-g);border:1px solid var(--blue-b);font-family:var(--mono);font-size:9px;color:var(--blue-l);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:20px}
+.hchip-dot{width:5px;height:5px;border-radius:50%;background:var(--blue-l);animation:blink 2s infinite}
+.hero-h{font-size:clamp(30px,5.5vw,54px);font-weight:800;letter-spacing:-2px;line-height:1.05;margin-bottom:14px}
+.hero-h .grd{background:linear-gradient(135deg,var(--blue-l) 0%,var(--green) 55%,var(--cyan) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-p{font-size:15px;color:var(--t2);max-width:460px;margin:0 auto 32px;line-height:1.75}
+.hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:48px}
+
+/* Big protect button */
+.btn-protect-big{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;border:none;font-family:var(--sans);letter-spacing:-.3px;background:linear-gradient(135deg,var(--blue) 0%,#3a5fe0 60%,var(--violet) 100%);color:#fff;box-shadow:0 4px 28px rgba(80,120,255,.38),0 0 0 1px rgba(80,120,255,.2);transition:all var(--dur) var(--ease2);position:relative;overflow:hidden}
+.btn-protect-big::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12),transparent);border-radius:14px}
+.btn-protect-big:hover{transform:translateY(-3px);box-shadow:0 8px 40px rgba(80,120,255,.5),0 0 0 1px rgba(80,120,255,.3)}
+
+/* Stats grid */
+.stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:32px}
+.stat-c{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:16px 14px;text-align:center;transition:all var(--dur);position:relative;overflow:hidden;cursor:default}
+.stat-c::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent-line, transparent);border-radius:0 0 var(--rl) var(--rl);opacity:.6}
+.stat-c:hover{border-color:var(--b2);transform:translateY(-2px)}
+.sv{font-family:var(--mono);font-size:24px;font-weight:600;letter-spacing:-1px;line-height:1}
+.sl{font-size:10px;color:var(--t3);margin-top:4px;letter-spacing:.3px;font-weight:500}
+
+/* Security flow diagram */
+.flow-diagram{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rx);padding:28px 22px 24px;margin-bottom:28px;position:relative;overflow:hidden}
+.flow-label{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:8px;letter-spacing:2.5px;color:var(--t3);text-transform:uppercase;white-space:nowrap}
+.flow-steps{display:flex;align-items:flex-start;gap:0;margin-top:18px;position:relative}
+.flow-line{position:absolute;top:27px;left:10%;right:10%;height:1px;z-index:0}
+.flow-line-inner{width:100%;height:1px;background:linear-gradient(90deg,var(--blue),var(--green),var(--violet),var(--amber),var(--cyan));opacity:.3}
+.flow-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;position:relative;z-index:1;padding:0 4px}
+.fs-node{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;border:1px solid;transition:transform var(--dur) var(--ease),box-shadow var(--dur);position:relative;flex-shrink:0}
+.fs-node:hover{transform:translateY(-5px)}
+.fs-n1{background:var(--blue-g);border-color:var(--blue-b)}
+.fs-n2{background:var(--green-g);border-color:var(--green-b)}
+.fs-n3{background:var(--violet-g);border-color:var(--violet-b)}
+.fs-n4{background:var(--amber-g);border-color:var(--amber-b)}
+.fs-n5{background:var(--cyan-g);border-color:var(--cyan-b)}
+.fs-n1:hover{box-shadow:0 8px 24px var(--blue-g)}
+.fs-n2:hover{box-shadow:0 8px 24px var(--green-g)}
+.fs-n3:hover{box-shadow:0 8px 24px var(--violet-g)}
+.fs-n4:hover{box-shadow:0 8px 24px var(--amber-g)}
+.fs-n5:hover{box-shadow:0 8px 24px var(--cyan-g)}
+.fs-num{position:absolute;top:-7px;right:-7px;width:15px;height:15px;border-radius:50%;font-family:var(--mono);font-size:8px;font-weight:600;display:grid;place-items:center;border:1px solid var(--bg2)}
+.fs-n1 .fs-num{background:var(--blue);color:#fff}
+.fs-n2 .fs-num{background:var(--green);color:#000}
+.fs-n3 .fs-num{background:var(--violet);color:#fff}
+.fs-n4 .fs-num{background:var(--amber);color:#000}
+.fs-n5 .fs-num{background:var(--cyan);color:#000}
+.fs-lbl{font-size:11px;font-weight:700;letter-spacing:-.2px}
+.fs-desc{font-family:var(--mono);font-size:9px;color:var(--t3);line-height:1.5;max-width:75px}
+
+/* Security cards row */
+.sec-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:28px}
+.sec-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:18px;display:flex;gap:12px;align-items:flex-start;transition:all var(--dur)}
+.sec-card:hover{border-color:var(--b2);transform:translateY(-2px)}
+.sec-emoji{font-size:22px;flex-shrink:0;width:36px;text-align:center}
+.sec-title{font-size:12px;font-weight:700;letter-spacing:-.2px;margin-bottom:3px}
+.sec-body{font-size:11px;color:var(--t3);line-height:1.55}
+
+/* Quick actions */
+.quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px;margin-bottom:28px}
+.qcard{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);padding:18px 16px;cursor:pointer;transition:all var(--dur) var(--ease2);position:relative;overflow:hidden}
+.qcard::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity var(--dur);border-radius:var(--rl)}
+.qc-b::after{background:radial-gradient(circle at 50% 0%,var(--blue-g),transparent 70%)}
+.qc-g::after{background:radial-gradient(circle at 50% 0%,var(--green-g),transparent 70%)}
+.qc-v::after{background:radial-gradient(circle at 50% 0%,var(--violet-g),transparent 70%)}
+.qc-a::after{background:radial-gradient(circle at 50% 0%,var(--amber-g),transparent 70%)}
+.qcard:hover{transform:translateY(-3px);border-color:var(--b2);box-shadow:var(--sh2)}
+.qcard:hover::after{opacity:1}
+.qi{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:11px;border:1px solid;position:relative;z-index:1}
+.qi-b{background:var(--blue-g);border-color:var(--blue-b)}
+.qi-g{background:var(--green-g);border-color:var(--green-b)}
+.qi-v{background:var(--violet-g);border-color:var(--violet-b)}
+.qi-a{background:var(--amber-g);border-color:var(--amber-b)}
+.qt{font-size:12px;font-weight:700;letter-spacing:-.2px;margin-bottom:3px;position:relative;z-index:1}
+.qd{font-size:11px;color:var(--t3);line-height:1.5;position:relative;z-index:1}
+.qa{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px;transition:all var(--dur)}
+.qcard:hover .qa{color:var(--t2);right:10px}
+
+/* Recent activity */
+.activity{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rx);padding:22px;margin-bottom:14px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.section-title{font-size:13px;font-weight:700;letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+.section-action{font-size:11px;color:var(--blue-l);cursor:pointer;font-weight:600;transition:opacity var(--dur)}
+.section-action:hover{opacity:.7}
+
+/* ═══════════════════════════
+   UNIFIED PROTECT WIZARD
+═══════════════════════════ */
+.wizard{position:relative}
+
+/* Progress track at top */
+.wiz-track{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rx);padding:20px 24px 18px;margin-bottom:16px;position:relative;overflow:hidden}
+.wiz-track::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--violet));transform:scaleX(var(--prog,0));transform-origin:left;transition:transform .6s var(--ease2);border-radius:var(--rx) var(--rx) 0 0}
+.wiz-steps{display:flex;align-items:center;gap:0;justify-content:space-between}
+.wiz-step{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;position:relative}
+.wiz-step:not(:last-child)::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:1px;background:var(--b2);z-index:0}
+.wiz-step.done:not(:last-child)::after{background:linear-gradient(90deg,var(--blue),var(--blue-b))}
+.ws-circle{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:600;border:1px solid var(--b2);background:var(--bg3);color:var(--t3);transition:all var(--dur) var(--ease2);position:relative;z-index:1;flex-shrink:0}
+.wiz-step.act .ws-circle{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 20px var(--blue-g)}
+.wiz-step.done .ws-circle{background:var(--green);border-color:var(--green);color:#000}
+.ws-lbl{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:-.1px;text-align:center;transition:color var(--dur)}
+.wiz-step.act .ws-lbl{color:var(--blue-l)}
+.wiz-step.done .ws-lbl{color:var(--green)}
+
+/* Wizard card */
+.wiz-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rx);padding:26px;margin-bottom:0;position:relative;overflow:hidden;animation:su var(--dur) var(--ease) both}
+.wiz-glow{position:absolute;top:-40%;right:-15%;width:320px;height:320px;border-radius:50%;pointer-events:none;z-index:0}
+.g-blue{background:radial-gradient(circle,rgba(80,120,255,.07),transparent 70%)}
+.g-green{background:radial-gradient(circle,rgba(15,204,149,.07),transparent 70%)}
+.g-violet{background:radial-gradient(circle,rgba(157,93,255,.07),transparent 70%)}
+.g-gold{background:radial-gradient(circle,rgba(255,169,64,.07),transparent 70%)}
+
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:22px;position:relative;z-index:1}
+.step-num{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-family:var(--mono);font-size:13px;font-weight:700;flex-shrink:0;border:1px solid}
+.sn-blue{background:var(--blue-g);border-color:var(--blue-b);color:var(--blue-l)}
+.sn-green{background:var(--green-g);border-color:var(--green-b);color:var(--green)}
+.sn-violet{background:var(--violet-g);border-color:var(--violet-b);color:var(--violet)}
+.sn-gold{background:var(--amber-g);border-color:var(--amber-b);color:var(--amber)}
+.step-title{font-size:15px;font-weight:800;letter-spacing:-.4px}
+.step-sub{font-size:12px;color:var(--t3);margin-top:1px}
+
+/* ═══ STEP 1: DROP ZONE ═══ */
+.drop-area{border:2px dashed var(--b2);border-radius:var(--rl);padding:48px 24px;text-align:center;cursor:pointer;transition:all var(--dur) var(--ease2);background:var(--bg3);position:relative;z-index:1}
+.drop-area:hover,.drop-area.over{border-color:var(--blue);background:var(--blue-g);box-shadow:inset 0 0 48px rgba(80,120,255,.04)}
+.drop-area .di{width:60px;height:60px;border-radius:18px;background:var(--blue-g);border:1px solid var(--blue-b);margin:0 auto 14px;display:grid;place-items:center;transition:transform var(--dur) var(--ease)}
+.drop-area:hover .di,.drop-area.over .di{transform:scale(1.1) translateY(-3px)}
+.drop-area .dt{font-size:16px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px}
+.drop-area .ds{font-size:12px;color:var(--t3)}
+input[type=file]{display:none}
+
+/* File chip (after selection) */
+.file-chip{background:var(--bg3);border:1px solid var(--b2);border-radius:var(--rl);padding:14px 16px;position:relative;z-index:1;margin-top:0}
+.fc-row{display:flex;align-items:center;gap:10px}
+.fc-icon{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--blue),#3550d4);display:grid;place-items:center;flex-shrink:0}
+.fc-name{font-size:13px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-size{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:1px}
+.fc-rm{padding:4px 11px;border-radius:7px;border:1px solid var(--b2);background:transparent;color:var(--t3);font-size:11px;cursor:pointer;transition:all .15s;font-family:var(--sans)}
+.fc-rm:hover{border-color:var(--red-b);color:var(--red);background:var(--red-g)}
+.fc-hash{font-family:var(--mono);font-size:9px;background:var(--bg);border:1px solid var(--b1);border-radius:6px;padding:6px 10px;color:var(--t3);display:flex;align-items:center;gap:7px;margin-top:9px}
+.fc-hash span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-btn{background:none;border:none;cursor:pointer;color:var(--blue-l);font-size:9px;font-weight:700;font-family:var(--mono);flex-shrink:0;transition:opacity .15s}
+.copy-btn:hover{opacity:.6}
+
+/* ═══ STEP 2: CONFIG ═══ */
+.config-panel{display:flex;flex-direction:column;gap:14px;position:relative;z-index:1}
+
+/* Encrypt toggle */
+.enc-toggle-wrap{background:var(--bg3);border:1px solid var(--b2);border-radius:var(--rl);padding:16px 18px;cursor:pointer;transition:all var(--dur)}
+.enc-toggle-wrap:hover{border-color:var(--b3)}
+.enc-toggle-wrap.active{border-color:var(--cyan-b);background:var(--cyan-g)}
+.etw-row{display:flex;align-items:center;gap:12px}
+.etw-icon{width:36px;height:36px;border-radius:10px;background:var(--cyan-g);border:1px solid var(--cyan-b);display:grid;place-items:center;flex-shrink:0;transition:all var(--dur)}
+.enc-toggle-wrap.active .etw-icon{background:var(--cyan);border-color:var(--cyan)}
+.etw-text{flex:1}
+.etw-title{font-size:12px;font-weight:700;letter-spacing:-.2px;margin-bottom:1px}
+.etw-desc{font-size:11px;color:var(--t3)}
+.toggle-pill{width:40px;height:22px;border-radius:11px;background:var(--bg4);border:1px solid var(--b2);position:relative;transition:all var(--dur);flex-shrink:0}
+.toggle-pill.on{background:var(--cyan);border-color:var(--cyan)}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform var(--dur) var(--ease2);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.toggle-pill.on .toggle-thumb{transform:translateX(18px)}
+.enc-info{margin-top:10px;font-size:11px;color:var(--cyan);line-height:1.6;font-family:var(--mono);display:none}
+.enc-toggle-wrap.active .enc-info{display:block}
+
+/* Form fields */
+.fg{margin-bottom:0}
+.fl{display:block;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t3);margin-bottom:7px;letter-spacing:.9px;text-transform:uppercase}
+.fi{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-size:13px;outline:none;transition:all var(--dur);font-family:var(--sans)}
+.fi::placeholder{color:var(--t3)}
+.fi:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-g)}
+.fta{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-size:11px;outline:none;transition:all var(--dur);font-family:var(--mono);resize:vertical;min-height:84px}
+.fta:focus{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-g)}
+.fi-teal:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-g)}
+
+/* ═══ STEP 3: PROCESSING ═══ */
+.process-steps{display:grid;gap:10px;position:relative;z-index:1}
+.ps{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);transition:all var(--dur)}
+.ps.act{border-color:var(--blue-b);background:var(--blue-g)}
+.ps.done{border-color:var(--green-b);background:var(--green-g)}
+.ps-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;background:var(--bg4);border:1px solid var(--b2);transition:all var(--dur)}
+.ps.act .ps-icon{background:var(--blue);border-color:var(--blue)}
+.ps.done .ps-icon{background:var(--green);border-color:var(--green)}
+.ps-name{font-size:12px;font-weight:700;letter-spacing:-.2px;flex:1}
+.ps-status{font-family:var(--mono);font-size:10px;color:var(--t3);transition:color var(--dur)}
+.ps.act .ps-status{color:var(--blue-l)}
+.ps.done .ps-status{color:var(--green)}
+
+/* ═══ STEP 4: DONE / RESULT ═══ */
+.done-card{background:var(--green-g);border:1px solid var(--green-b);border-radius:var(--rx);padding:24px;position:relative;z-index:1}
+.done-header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.done-circle{width:48px;height:48px;border-radius:50%;background:var(--green);display:grid;place-items:center;flex-shrink:0;box-shadow:0 0 28px rgba(15,204,149,.35)}
+.done-title{font-size:16px;font-weight:800;letter-spacing:-.4px;color:var(--green)}
+.done-sub{font-size:12px;color:var(--t3);margin-top:1px}
+
+.meta-grid{display:grid;gap:6px;margin-bottom:16px;background:var(--bg);border:1px solid var(--b1);border-radius:var(--r);padding:14px}
+.meta-row{display:flex;gap:10px;align-items:flex-start}
+.mk{font-family:var(--mono);font-size:9px;color:var(--t3);min-width:78px;font-weight:500;letter-spacing:.4px;text-transform:uppercase;flex-shrink:0;padding-top:2px}
+.mv{font-family:var(--mono);color:var(--t2);word-break:break-all;font-size:10px;line-height:1.5}
+
+.jwt-token-display{background:var(--bg);border:1px solid var(--amber-b);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.jtd-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.jtd-label{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--amber);letter-spacing:.8px;text-transform:uppercase;flex:1}
+.jtd-copy{background:var(--amber-g);border:1px solid var(--amber-b);border-radius:5px;padding:2px 9px;font-size:9px;font-weight:700;color:var(--amber);cursor:pointer;font-family:var(--mono)}
+.jtd-body{font-family:var(--mono);font-size:9px;word-break:break-all;line-height:1.9}
+.jp1{color:var(--red)}.jp2{color:var(--green)}.jp3{color:var(--blue-l)}
+
+.key-display{background:var(--bg);border:1px solid var(--cyan-b);border-radius:9px;padding:12px 14px;position:relative;margin-bottom:8px}
+.kdl{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--cyan);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+.kdc{position:absolute;top:10px;right:10px;background:var(--cyan-g);border:1px solid var(--cyan-b);border-radius:5px;padding:2px 8px;font-size:9px;font-weight:700;color:var(--cyan);cursor:pointer;font-family:var(--mono)}
+.kdv{font-family:var(--mono);font-size:9px;color:var(--cyan);word-break:break-all;line-height:1.6}
+
+/* Done actions */
+.done-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dact{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);font-family:var(--sans);transition:all .15s}
+.dact:hover{border-color:var(--blue-b);color:var(--blue-l);background:var(--blue-g)}
+.dact.g:hover{border-color:var(--green-b);color:var(--green);background:var(--green-g)}
+.dact.a:hover{border-color:var(--amber-b);color:var(--amber);background:var(--amber-g)}
+
+/* Next step strip */
+.next-strip{background:var(--bg3);border:1px solid var(--b2);border-radius:var(--rl);padding:14px 16px;margin-top:14px;animation:su var(--dur) var(--ease) both}
+.ns-label{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:9px}
+.ns-row{display:flex;gap:7px;flex-wrap:wrap}
+.ns-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--b2);background:var(--bg2);color:var(--t2);font-family:var(--sans);transition:all .15s}
+.ns-btn:hover{border-color:var(--blue-b);color:var(--blue-l);background:var(--blue-g)}
+.ns-btn.g:hover{border-color:var(--green-b);color:var(--green);background:var(--green-g)}
+.ns-btn.a:hover{border-color:var(--amber-b);color:var(--amber);background:var(--amber-g)}
+
+/* Nav between wizard steps */
+.wiz-nav{display:flex;gap:8px;margin-top:22px;position:relative;z-index:1}
+
+/* ═══ VERIFY ═══ */
+.verify-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rx);padding:26px;margin-bottom:14px;position:relative;overflow:hidden}
+.r-ok{background:var(--green-g);border:1px solid var(--green-b);border-radius:var(--rl);padding:18px 20px;margin-top:14px;animation:su var(--dur) var(--ease) both}
+.r-bad{background:var(--red-g);border:1px solid var(--red-b);border-radius:var(--rl);padding:18px 20px;margin-top:14px;animation:su var(--dur) var(--ease) both}
+.r-title{font-size:14px;font-weight:800;letter-spacing:-.3px;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.r-ok .r-title{color:var(--green)}
+.r-bad .r-title{color:var(--red)}
+
+/* ═══ DECRYPT ═══ */
+.decrypt-section{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rx);padding:26px;margin-bottom:14px;position:relative;overflow:hidden}
+.r-teal{background:var(--cyan-g);border:1px solid var(--cyan-b);border-radius:var(--rl);padding:18px 20px;margin-top:14px;animation:su var(--dur) var(--ease) both}
+.r-teal .r-title{color:var(--cyan)}
+
+/* ═══ JWT VERIFY ═══ */
+.r-gold{background:var(--amber-g);border:1px solid var(--amber-b);border-radius:var(--rl);padding:18px 20px;margin-top:14px;animation:su var(--dur) var(--ease) both}
+.r-gold .r-title{color:var(--amber)}
+.jwt-claims{display:grid;gap:4px;background:var(--bg);border-radius:8px;padding:12px;border:1px solid var(--b1);margin-top:10px}
+.jclaim{display:flex;gap:9px}
+.jkey{color:var(--amber);min-width:90px;font-weight:500;font-family:var(--mono);font-size:9px;flex-shrink:0}
+.jval{font-family:var(--mono);color:var(--t2);word-break:break-all;font-size:9px}
+
+/* ═══ HISTORY ═══ */
+.htoolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;position:relative;z-index:1}
+.search-wrap{flex:1;min-width:180px;position:relative}
+.search-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none}
+.si{width:100%;padding:8px 12px 8px 32px;border-radius:9px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-size:12px;outline:none;transition:all var(--dur);font-family:var(--sans)}
+.si:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-g)}
+.fsel{padding:8px 12px;border-radius:9px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);font-size:11px;outline:none;font-family:var(--sans);cursor:pointer;transition:all var(--dur)}
+.fsel:focus{border-color:var(--blue)}
+
+.tl{position:relative;padding-left:22px}
+.tl::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,var(--blue),transparent)}
+.tl-item{position:relative;padding:0 0 20px 18px}
+.tl-dot{position:absolute;left:-19px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--bg2);border:2px solid var(--blue);box-shadow:0 0 8px var(--blue-g)}
+.tl-dot.signed{border-color:var(--green);box-shadow:0 0 8px var(--green-g);background:var(--green-g)}
+.tl-date{font-family:var(--mono);font-size:9px;color:var(--t3);margin-bottom:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.tl-name{font-size:12px;font-weight:700;letter-spacing:-.2px;margin-bottom:2px}
+.tl-hash{font-family:var(--mono);font-size:9px;color:var(--t3);word-break:break-all;margin-bottom:7px}
+.tl-acts{display:flex;gap:5px;flex-wrap:wrap}
+.mb{padding:3px 10px;border-radius:7px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--b2);background:var(--bg3);color:var(--t3);transition:all .15s;font-family:var(--sans)}
+.mb:hover{background:var(--bg2);color:var(--t1)}
+.mb.danger:hover{background:var(--red-g);color:var(--red);border-color:var(--red-b)}
+
+/* ═══ BATCH ═══ */
+.blist{display:grid;gap:6px;margin-top:12px}
+.bi{display:flex;align-items:center;gap:9px;padding:9px 13px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);transition:border-color .15s}
+.bi:hover{border-color:var(--b2)}
+.bi-ico{width:28px;height:28px;border-radius:7px;background:var(--blue-g);border:1px solid var(--blue-b);display:grid;place-items:center;flex-shrink:0}
+.bi-n{font-size:11px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bi-s{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.bi-st{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 8px;border-radius:20px;flex-shrink:0}
+.s-p{background:var(--amber-g);color:var(--amber)}
+.s-d{background:var(--green-g);color:var(--green)}
+.s-e{background:var(--red-g);color:var(--red)}
+.bi-rm{background:none;border:none;cursor:pointer;color:var(--t3);font-size:13px;padding:0 3px;transition:color .15s}
+.bi-rm:hover{color:var(--red)}
+
+/* ═══ BUTTONS ═══ */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;transition:all var(--dur) var(--ease2);border:none;font-family:var(--sans);letter-spacing:-.2px}
+.btn svg{flex-shrink:0}
+.btn-blue{background:linear-gradient(135deg,var(--blue),#3550d4);color:#fff;box-shadow:0 3px 18px var(--blue-g)}
+.btn-blue:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(80,120,255,.4)}
+.btn-blue:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-green{background:linear-gradient(135deg,#059669,var(--green));color:#fff;box-shadow:0 3px 18px var(--green-g)}
+.btn-green:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(15,204,149,.3)}
+.btn-green:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-teal{background:linear-gradient(135deg,#0891b2,var(--cyan));color:#fff;box-shadow:0 3px 18px var(--cyan-g)}
+.btn-teal:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(34,204,238,.3)}
+.btn-teal:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-amber{background:linear-gradient(135deg,#d97706,var(--amber));color:#fff;box-shadow:0 3px 18px var(--amber-g)}
+.btn-amber:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(255,169,64,.3)}
+.btn-amber:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-ghost{background:var(--bg3);color:var(--t2);border:1px solid var(--b2)}
+.btn-ghost:hover{background:var(--bg4);color:var(--t1);border-color:var(--b3)}
+.btn-sm{padding:7px 14px;font-size:11px;border-radius:9px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;position:relative;z-index:1}
+
+/* Divider */
+.divr{display:flex;align-items:center;gap:11px;margin:16px 0;position:relative;z-index:1}
+.divr-l{flex:1;height:1px;background:var(--b1)}
+.divr-t{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:1px 8px;border-radius:20px;font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.3px}
+.b-g{background:var(--green-g);color:var(--green);border:1px solid var(--green-b)}
+.b-r{background:var(--red-g);color:var(--red);border:1px solid var(--red-b)}
+.b-t{background:var(--cyan-g);color:var(--cyan);border:1px solid var(--cyan-b)}
+.b-a{background:var(--amber-g);color:var(--amber);border:1px solid var(--amber-b)}
+.b-b{background:var(--blue-g);color:var(--blue-l);border:1px solid var(--blue-b)}
+
+/* Info banners */
+.ib{border-radius:var(--r);padding:11px 14px;margin-bottom:14px;font-size:12px;line-height:1.6;position:relative;z-index:1}
+.ib-t{background:var(--cyan-g);border:1px solid var(--cyan-b);color:var(--cyan)}
+.ib-a{background:var(--amber-g);border:1px solid var(--amber-b);color:var(--amber)}
+.ib-b{background:var(--blue-g);border:1px solid var(--blue-b);color:var(--blue-l)}
+.ib strong{font-weight:700}
+.warn{background:var(--amber-g);border:1px solid var(--amber-b);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--amber);line-height:1.6;margin-top:9px}
+
+/* Empty state */
+.empty{text-align:center;padding:48px 0;color:var(--t3)}
+.empty-ico{font-size:32px;margin-bottom:10px;opacity:.5}
+
+/* Card glow */
+.card-glow{position:absolute;top:-50%;right:-15%;width:280px;height:280px;border-radius:50%;pointer-events:none;z-index:0}
+.cg-b{background:radial-gradient(circle,rgba(80,120,255,.06),transparent 70%)}
+.cg-g{background:radial-gradient(circle,rgba(15,204,149,.06),transparent 70%)}
+.cg-a{background:radial-gradient(circle,rgba(255,169,64,.06),transparent 70%)}
+.cg-v{background:radial-gradient(circle,rgba(157,93,255,.06),transparent 70%)}
+
+/* Card header */
+.card-hd{display:flex;align-items:flex-start;gap:11px;margin-bottom:18px;position:relative;z-index:1}
+.card-ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;border:1px solid}
+.ci-b{background:var(--blue-g);border-color:var(--blue-b)}
+.ci-g{background:var(--green-g);border-color:var(--green-b)}
+.ci-a{background:var(--amber-g);border-color:var(--amber-b)}
+.ci-v{background:var(--violet-g);border-color:var(--violet-b)}
+.card-title{font-size:14px;font-weight:700;letter-spacing:-.3px;margin-bottom:2px}
+.card-sub{font-size:11px;color:var(--t3);line-height:1.55}
+
+/* Spinner */
+.spin{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;animation:rot .7s linear infinite;flex-shrink:0}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* Modal */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(14px);z-index:300;align-items:center;justify-content:center}
+.moverlay.open{display:flex}
+.modal{background:var(--bg2);border-radius:var(--rx);padding:24px;max-width:320px;width:90%;border:1px solid var(--b2);box-shadow:var(--sh);animation:su .2s var(--ease) both}
+.modal-t{font-size:15px;font-weight:800;margin-bottom:3px}
+.modal-s{font-size:11px;color:var(--t3);margin-bottom:14px}
+#qr-cont{display:flex;justify-content:center;margin-bottom:10px}
+#qr-cont canvas,#qr-cont img{border-radius:8px;border:6px solid #fff}
+#qr-hash{font-family:var(--mono);font-size:8px;color:var(--t3);word-break:break-all;margin-bottom:14px;text-align:center}
+
+/* Toast */
+#toast{position:fixed;bottom:22px;right:22px;padding:10px 16px;border-radius:10px;background:var(--bg2);border:1px solid var(--b2);color:var(--t1);font-size:12px;font-weight:600;opacity:0;transition:all .25s;transform:translateY(8px);pointer-events:none;z-index:400;max-width:260px;box-shadow:var(--sh)}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:640px){
+  header{flex-wrap:wrap;height:auto;padding:10px 14px 8px;gap:8px}
+  .logo-sub{display:none}
+  .nav-wrap{order:3;width:100%}
+  .net{display:none}
+  main{padding:16px 12px 70px}
+  .hero-h{font-size:26px}
+  .stat-grid{grid-template-columns:repeat(3,1fr)}
+  .stat-grid>*:nth-child(4),.stat-grid>*:nth-child(5){display:none}
+  .quick-grid{grid-template-columns:1fr 1fr}
+  .sec-cards{grid-template-columns:1fr}
+  .fs-desc{display:none}
+  .fs-node{width:44px;height:44px;border-radius:13px}
+  .flow-steps::before{top:22px}
+  .wiz-track{padding:16px 18px 14px}
+  .ws-lbl{font-size:9px}
+  .ws-circle{width:24px;height:24px;font-size:10px}
+  .btn-protect-big{padding:12px 22px;font-size:14px}
+}
+@media(max-width:420px){
+  .quick-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+<div class="orb o3"></div>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <a class="logo" href="#" onclick="goTab('home');return false">
+    <div class="logo-mark">
+      <svg class="logo-svg" viewBox="0 0 32 32" fill="none">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#5078ff"/>
+            <stop offset="50%" stop-color="#7844e8"/>
+            <stop offset="100%" stop-color="#0fcc95"/>
+          </linearGradient>
+        </defs>
+        <rect width="32" height="32" rx="9" class="logo-bg-rect"/>
+        <path d="M16 7L8 11v5c0 4.5 3.5 8.5 8 9.5 4.5-1 8-5 8-9.5V11L16 7z" class="logo-icon" stroke-width="1.5"/>
+        <path d="M12.5 16.5l2.5 2.5 5-5" class="logo-icon" stroke-width="1.8"/>
+      </svg>
+    </div>
+    <div class="logo-wm">
+      <div class="logo-name">ChainProof</div>
+      <div class="logo-sub">Blockchain · v4.0 · Sepolia</div>
+    </div>
+  </a>
+
+  <div class="nav-wrap">
+    <div class="nav-pills">
+      <button class="np on"  data-tab="home"    onclick="goTab('home',this)">Home</button>
+      <button class="np"     data-tab="protect" onclick="goTab('protect',this)">🔒 Protect File</button>
+      <button class="np"     data-tab="verify"  onclick="goTab('verify',this)">✓ Verify</button>
+      <button class="np"     data-tab="batch"   onclick="goTab('batch',this)">Batch</button>
+      <button class="np a"   data-tab="jwt"     onclick="goTab('jwt',this)">JWT</button>
+      <button class="np"     data-tab="decrypt" onclick="goTab('decrypt',this)">Decrypt</button>
+      <button class="np"     data-tab="history" onclick="goTab('history',this)">History</button>
+    </div>
+  </div>
+
+  <div class="hbar">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+      <svg class="i-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
+      <svg class="i-sun"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+    <div class="net"><span class="ndot"></span>Sepolia</div>
+    <button class="wbtn" onclick="connectWallet()">
+      <span class="wdot" id="wdot"></span>
+      <span id="wlbl">Connect wallet</span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══════════════ HOME DASHBOARD ═══════════════ -->
+<div class="panel on" id="p-home">
+  <div class="dash-hero">
+    <div class="hero-chip"><span class="hchip-dot"></span>SHA-256 · ECDSA · AES-256-GCM · JWT · Blockchain</div>
+    <h1 class="hero-h">Your files.<br><span class="grd">Provably yours.</span></h1>
+    <p class="hero-p">One workflow: upload, optionally encrypt, sign with MetaMask, register on Ethereum, get a JWT certificate — all in under a minute.</p>
+    <div class="hero-actions">
+      <button class="btn-protect-big" onclick="goTab('protect',document.querySelector('[data-tab=protect]'))">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Protect a File
+      </button>
+      <button class="btn btn-ghost" onclick="goTab('verify',document.querySelector('[data-tab=verify]'))">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+        Verify a file
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid">
+    <div class="stat-c" style="--accent-line:var(--blue)"><div class="sv" id="hs-total" style="color:var(--blue-l)">—</div><div class="sl">On-chain records</div></div>
+    <div class="stat-c" style="--accent-line:var(--blue)"><div class="sv" id="hs-mine"  style="color:var(--blue-l)">—</div><div class="sl">My files</div></div>
+    <div class="stat-c" style="--accent-line:var(--green)"><div class="sv" id="hs-ver"  style="color:var(--green)">0</div><div class="sl">Verified</div></div>
+    <div class="stat-c" style="--accent-line:var(--cyan)"><div class="sv" id="hs-enc"   style="color:var(--cyan)">0</div><div class="sl">Encrypted</div></div>
+    <div class="stat-c" style="--accent-line:var(--amber)"><div class="sv" id="hs-jwt"  style="color:var(--amber)">0</div><div class="sl">JWTs issued</div></div>
+  </div>
+
+  <!-- Security flow -->
+  <div class="flow-diagram">
+    <div class="flow-label">Unified protection flow</div>
+    <div class="flow-steps">
+      <div class="flow-line"><div class="flow-line-inner"></div></div>
+      <div class="flow-step">
+        <div class="fs-node fs-n1"><span class="fs-num">1</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue-l)" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="fs-lbl">Upload</div>
+        <div class="fs-desc">Any file<br>stays local</div>
+      </div>
+      <div class="flow-step">
+        <div class="fs-node fs-n2"><span class="fs-num">2</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <div class="fs-lbl">Encrypt</div>
+        <div class="fs-desc">AES-256<br>optional</div>
+      </div>
+      <div class="flow-step">
+        <div class="fs-node fs-n3"><span class="fs-num">3</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="fs-lbl">Sign</div>
+        <div class="fs-desc">ECDSA via<br>MetaMask</div>
+      </div>
+      <div class="flow-step">
+        <div class="fs-node fs-n4"><span class="fs-num">4</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="fs-lbl">Register</div>
+        <div class="fs-desc">Ethereum<br>Sepolia</div>
+      </div>
+      <div class="flow-step">
+        <div class="fs-node fs-n5"><span class="fs-num">5</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        </div>
+        <div class="fs-lbl">JWT</div>
+        <div class="fs-desc">Portable<br>certificate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="quick-grid">
+    <div class="qcard qc-b" onclick="goTab('protect',document.querySelector('[data-tab=protect]'))">
+      <div class="qi qi-b"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue-l)" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="qt">Protect File</div>
+      <div class="qd">Full unified flow: upload → encrypt → sign → register → JWT.</div>
+      <span class="qa">›</span>
+    </div>
+    <div class="qcard qc-g" onclick="goTab('verify',document.querySelector('[data-tab=verify]'))">
+      <div class="qi qi-g"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <div class="qt">Verify File</div>
+      <div class="qd">Check hash + ECDSA signature against the blockchain.</div>
+      <span class="qa">›</span>
+    </div>
+    <div class="qcard qc-a" onclick="goTab('jwt',document.querySelector('[data-tab=jwt]'))">
+      <div class="qi qi-a"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+      <div class="qt">Verify JWT</div>
+      <div class="qd">Verify a certificate offline — no blockchain needed.</div>
+      <span class="qa">›</span>
+    </div>
+    <div class="qcard qc-v" onclick="goTab('history',document.querySelector('[data-tab=history]'))">
+      <div class="qi qi-v" style="background:var(--violet-g);border-color:var(--violet-b)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="qt">History</div>
+      <div class="qd">Search and manage all your registered files.</div>
+      <span class="qa">›</span>
+    </div>
+  </div>
+
+  <!-- Why secure -->
+  <div class="sec-cards">
+    <div class="sec-card">
+      <div class="sec-emoji">🔢</div>
+      <div><div class="sec-title" style="color:var(--blue-l)">SHA-256 Hash</div><div class="sec-body">A mathematical fingerprint. Change even one byte — the hash changes completely. Impossible to reverse-engineer.</div></div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-emoji">✍️</div>
+      <div><div class="sec-title" style="color:var(--violet)">ECDSA Signature</div><div class="sec-body">Your MetaMask key signs the hash using elliptic curve cryptography — same math securing Ethereum transactions.</div></div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-emoji">⛓️</div>
+      <div><div class="sec-title" style="color:var(--amber)">Blockchain Storage</div><div class="sec-body">Stored in a smart contract on Ethereum. No one — not even us — can alter or delete the record.</div></div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-emoji">🔐</div>
+      <div><div class="sec-title" style="color:var(--cyan)">AES-256-GCM</div><div class="sec-body">Optional military-grade encryption runs entirely in your browser. Your key never leaves your device.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ UNIFIED PROTECT WIZARD ═══════════════ -->
+<div class="panel" id="p-protect">
+
+  <!-- Top progress track -->
+  <div class="wiz-track" id="wiz-track">
+    <div class="wiz-steps">
+      <div class="wiz-step act" id="wstep-1">
+        <div class="ws-circle">1</div>
+        <div class="ws-lbl">Upload</div>
+      </div>
+      <div class="wiz-step" id="wstep-2">
+        <div class="ws-circle">2</div>
+        <div class="ws-lbl">Configure</div>
+      </div>
+      <div class="wiz-step" id="wstep-3">
+        <div class="ws-circle">3</div>
+        <div class="ws-lbl">Sign & Register</div>
+      </div>
+      <div class="wiz-step" id="wstep-4">
+        <div class="ws-circle">4</div>
+        <div class="ws-lbl">Done</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1: Upload -->
+  <div class="wiz-card" id="ws1">
+    <div class="wiz-glow g-blue"></div>
+    <div class="step-header">
+      <div class="step-num sn-blue">1</div>
+      <div>
+        <div class="step-title">Choose your file</div>
+        <div class="step-sub">Any format accepted — PDF, image, document, data, archive</div>
+      </div>
+    </div>
+    <div class="drop-area" id="dz-p" onclick="document.getElementById('fi-p').click()" ondragover="dzOn('dz-p',event)" ondragleave="dzOff('dz-p',event)" ondrop="dzDrop('dz-p',event,'protect')">
+      <div class="di">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue-l)" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="dt">Drop your file here</div>
+      <div class="ds">or click to browse — file never leaves your browser</div>
+    </div>
+    <input type="file" id="fi-p" onchange="pickProtectFile(this.files[0])">
+    <div id="p-file-chip"></div>
+    <div class="wiz-nav">
+      <button class="btn btn-blue" id="btn-to-step2" onclick="goWizStep(2)" disabled>
+        Continue
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Configure -->
+  <div class="wiz-card" id="ws2" style="display:none">
+    <div class="wiz-glow g-violet"></div>
+    <div class="step-header">
+      <div class="step-num sn-violet">2</div>
+      <div>
+        <div class="step-title">Configure protection</div>
+        <div class="step-sub">Add a label and optionally encrypt before registering</div>
+      </div>
+    </div>
+    <div class="config-panel">
+      <!-- File summary -->
+      <div id="p-file-chip-2"></div>
+
+      <!-- Label -->
+      <div class="fg">
+        <label class="fl">Label / description</label>
+        <input class="fi" id="lbl-p" type="text" placeholder="e.g. Contract_Final_v2.pdf — what is this file?">
+      </div>
+
+      <!-- Encrypt toggle -->
+      <div class="enc-toggle-wrap" id="enc-wrap" onclick="toggleEnc()">
+        <div class="etw-row">
+          <div class="etw-icon" id="enc-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <div class="etw-text">
+            <div class="etw-title">Encrypt with AES-256-GCM</div>
+            <div class="etw-desc">File content stays private — only you can decrypt it</div>
+          </div>
+          <div class="toggle-pill" id="enc-pill"><div class="toggle-thumb"></div></div>
+        </div>
+        <div class="enc-info">🔐 A unique AES-256 key will be auto-generated. The encrypted file downloads automatically. The hash of the <em>encrypted</em> file is what gets registered on-chain. Save your Key + IV — without them the file cannot be recovered.</div>
+      </div>
+    </div>
+
+    <div class="wiz-nav">
+      <button class="btn btn-ghost btn-sm" onclick="goWizStep(1)">← Back</button>
+      <button class="btn btn-blue" onclick="goWizStep(3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Sign & Register
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Processing -->
+  <div class="wiz-card" id="ws3" style="display:none">
+    <div class="wiz-glow g-green"></div>
+    <div class="step-header">
+      <div class="step-num sn-green">3</div>
+      <div>
+        <div class="step-title">Signing & registering</div>
+        <div class="step-sub">This takes a few seconds — approve MetaMask when prompted</div>
+      </div>
+    </div>
+    <div class="process-steps">
+      <div class="ps" id="ps-hash">
+        <div class="ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
+        <div class="ps-name">Computing SHA-256 hash</div>
+        <div class="ps-status" id="ps-hash-s">Waiting…</div>
+      </div>
+      <div class="ps" id="ps-enc-row" style="display:none">
+        <div class="ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+        <div class="ps-name">Encrypting with AES-256-GCM</div>
+        <div class="ps-status" id="ps-enc-s">Waiting…</div>
+      </div>
+      <div class="ps" id="ps-sign">
+        <div class="ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="ps-name">Signing with MetaMask (ECDSA)</div>
+        <div class="ps-status" id="ps-sign-s">Waiting…</div>
+      </div>
+      <div class="ps" id="ps-chain">
+        <div class="ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+        <div class="ps-name">Storing on Ethereum Sepolia</div>
+        <div class="ps-status" id="ps-chain-s">Waiting…</div>
+      </div>
+      <div class="ps" id="ps-jwt">
+        <div class="ps-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+        <div class="ps-name">Generating JWT certificate</div>
+        <div class="ps-status" id="ps-jwt-s">Waiting…</div>
+      </div>
+    </div>
+    <div id="process-error" style="display:none" class="warn" style="margin-top:12px"></div>
+  </div>
+
+  <!-- STEP 4: Done -->
+  <div class="wiz-card" id="ws4" style="display:none">
+    <div class="wiz-glow g-gold"></div>
+    <div class="done-card" id="done-content">
+      <!-- Filled dynamically -->
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ VERIFY ═══════════════ -->
+<div class="panel" id="p-verify">
+  <div class="verify-card">
+    <div class="card-glow cg-g"></div>
+    <div class="card-hd">
+      <div class="card-ico ci-g"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <div><div class="card-title">Verify file authenticity</div><div class="card-sub">Recompute SHA-256, check blockchain record and verify ECDSA signature.</div></div>
+    </div>
+    <div class="drop-area" id="dz-v" onclick="document.getElementById('fi-v').click()" ondragover="dzOn('dz-v',event)" ondragleave="dzOff('dz-v',event)" ondrop="dzDrop('dz-v',event,'verify')">
+      <div class="di"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue-l)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <div class="dt">Drop the file to verify</div>
+      <div class="ds">Hash + signature checked against the blockchain</div>
+    </div>
+    <input type="file" id="fi-v" onchange="pickVerifyFile(this.files[0])">
+    <div id="v-chip"></div>
+    <div class="btn-row">
+      <button class="btn btn-green" id="ver-btn" onclick="doVerify()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+        Verify hash and signature
+      </button>
+    </div>
+    <div id="ver-result"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ BATCH ═══════════════ -->
+<div class="panel" id="p-batch">
+  <div class="verify-card">
+    <div class="card-glow cg-b"></div>
+    <div class="card-hd">
+      <div class="card-ico ci-b"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue-l)" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div><div class="card-title">Batch register — up to 10 files</div><div class="card-sub">Each file is signed, registered and gets its own JWT. No encryption in batch mode.</div></div>
+    </div>
+    <div class="drop-area" id="dz-b" onclick="document.getElementById('fi-b').click()" ondragover="dzOn('dz-b',event)" ondragleave="dzOff('dz-b',event)" ondrop="dzBatch(event)">
+      <div class="di"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue-l)" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div class="dt">Drop multiple files</div><div class="ds">Up to 10 files at once</div>
+    </div>
+    <input type="file" id="fi-b" multiple onchange="batchPick(this.files)">
+    <div id="batch-list" class="blist"></div>
+    <div class="btn-row">
+      <button class="btn btn-blue" id="batch-btn" onclick="doBatch()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+        Sign and register all
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="clearBatch()">Clear</button>
+    </div>
+    <div id="batch-result"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ JWT VERIFY ═══════════════ -->
+<div class="panel" id="p-jwt">
+  <div class="verify-card">
+    <div class="card-glow cg-a"></div>
+    <div class="card-hd">
+      <div class="card-ico ci-a"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+      <div><div class="card-title" style="color:var(--amber)">Verify JWT certificate</div><div class="card-sub">Paste a token or upload a .jwt file. Verify HMAC-SHA256 offline — no blockchain needed.</div></div>
+    </div>
+    <div class="ib ib-a"><strong>JWT</strong> is a portable offline proof: file hash + wallet address + tx hash + timestamp, all signed with HMAC-SHA256. Verify anywhere, anytime.</div>
+    <div style="margin-bottom:14px">
+      <label class="fl">Paste JWT token</label>
+      <textarea class="fta" id="jwt-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…"></textarea>
+    </div>
+    <div style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--t3);margin:10px 0">— or upload file —</div>
+    <div class="drop-area" id="dz-jwt" onclick="document.getElementById('fi-jwt').click()" ondragover="dzOn('dz-jwt',event)" ondragleave="dzOff('dz-jwt',event)" ondrop="dzJWT(event)" style="padding:24px">
+      <div class="di" style="width:40px;height:40px;border-radius:12px;background:var(--amber-g);border-color:var(--amber-b)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+      <div class="dt" style="font-size:13px">Upload .jwt file</div>
+    </div>
+    <input type="file" id="fi-jwt" accept=".jwt,.txt" onchange="loadJWT(this.files[0])">
+    <div class="btn-row">
+      <button class="btn btn-amber" onclick="doVerifyJWT()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 14l2 2 4-4"/></svg>
+        Verify JWT certificate
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('jwt-input').value='';document.getElementById('jwt-result').innerHTML=''">Clear</button>
+    </div>
+    <div id="jwt-result"></div>
+  </div>
+  <div class="verify-card" style="margin-top:14px">
+    <div class="card-glow cg-a"></div>
+    <div style="font-family:var(--mono);font-size:9px;background:var(--bg);border-radius:8px;padding:11px 13px;line-height:2;margin-bottom:14px;position:relative;z-index:1">
+      <span style="color:var(--red)">{"alg":"HS256","typ":"JWT"}</span> . <span style="color:var(--green)">{"fileHash":"0x…","registrant":"0x…","txHash":"0x…"}</span> . <span style="color:var(--blue-l)">HMAC-SHA256</span>
+    </div>
+    <div style="display:grid;gap:6px;position:relative;z-index:1">
+      <div style="display:flex;gap:9px;font-size:11px"><span style="color:var(--amber);font-weight:700;min-width:70px;font-family:var(--mono);font-size:9px">Blockchain</span><span style="color:var(--t3)">Permanent, immutable — requires internet + RPC</span></div>
+      <div style="display:flex;gap:9px;font-size:11px"><span style="color:var(--amber);font-weight:700;min-width:70px;font-family:var(--mono);font-size:9px">JWT</span><span style="color:var(--t3)">Portable, instant, offline — share like any file</span></div>
+      <div style="display:flex;gap:9px;font-size:11px"><span style="color:var(--amber);font-weight:700;min-width:70px;font-family:var(--mono);font-size:9px">Together</span><span style="color:var(--t3)">Two independent proofs — maximum assurance</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DECRYPT ═══════════════ -->
+<div class="panel" id="p-decrypt">
+  <div class="decrypt-section">
+    <div class="card-glow cg-v"></div>
+    <div class="card-hd">
+      <div class="card-ico ci-v"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div><div class="card-title" style="color:var(--cyan)">Decrypt a file</div><div class="card-sub">Upload the encrypted .enc file and provide your saved Key + IV to recover the original.</div></div>
+    </div>
+    <div class="drop-area" id="dz-dec" onclick="document.getElementById('fi-dec').click()" ondragover="dzOn('dz-dec',event)" ondragleave="dzOff('dz-dec',event)" ondrop="dzDrop('dz-dec',event,'decrypt')" style="border-color:var(--cyan-b)">
+      <div class="di" style="background:var(--cyan-g);border-color:var(--cyan-b)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div class="dt">Drop encrypted file (.enc)</div>
+      <div class="ds">The file downloaded when you ran Protect with encryption</div>
+    </div>
+    <input type="file" id="fi-dec" onchange="pickDecFile(this.files[0])">
+    <div id="dec-chip"></div>
+    <div class="divr"><div class="divr-l"></div><div class="divr-t">Decryption keys</div><div class="divr-l"></div></div>
+    <div style="display:grid;gap:12px;margin-bottom:16px;position:relative;z-index:1">
+      <div class="fg"><label class="fl">AES-256 Secret Key (base64)</label><input class="fi fi-teal" id="dec-key" type="text" placeholder="Paste the key shown after encrypting…"></div>
+      <div class="fg"><label class="fl">IV — Initialization Vector (base64)</label><input class="fi fi-teal" id="dec-iv" type="text" placeholder="Paste the IV shown after encrypting…"></div>
+      <div class="fg"><label class="fl">Original filename</label><input class="fi fi-teal" id="dec-name" type="text" placeholder="e.g. Contract_Final.pdf"></div>
+    </div>
+    <button class="btn btn-teal" id="dec-btn" onclick="doDecrypt()" disabled>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Decrypt and download
+    </button>
+    <div id="dec-result"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ HISTORY ═══════════════ -->
+<div class="panel" id="p-history">
+  <div class="verify-card">
+    <div class="card-glow cg-b"></div>
+    <div class="card-hd">
+      <div class="card-ico ci-b"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue-l)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div><div class="card-title">Registration history</div><div class="card-sub">All files registered with your connected wallet.</div></div>
+    </div>
+    <div class="htoolbar">
+      <div class="search-wrap">
+        <svg class="search-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="si" id="hist-q" type="text" placeholder="Search by name, hash, wallet…" oninput="filterHistory()">
+      </div>
+      <select class="fsel" id="hist-f" onchange="filterHistory()">
+        <option value="all">All records</option>
+        <option value="signed">Signed only</option>
+        <option value="encrypted">Encrypted only</option>
+        <option value="today">Today</option>
+        <option value="week">This week</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="loadHistory()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M20.49 15a9 9 0 01-14.85 3.36L1 14"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div id="history-content"><div class="empty"><div class="empty-ico">🔐</div><div>Connect your wallet to view history</div></div></div>
+  </div>
+</div>
+
+</main>
+
+<!-- QR Modal -->
+<div class="moverlay" id="qr-modal">
+  <div class="modal">
+    <div class="modal-t">Verification QR</div>
+    <div class="modal-s" id="qr-lbl">Scan to verify on Etherscan</div>
+    <div id="qr-cont"></div>
+    <div id="qr-hash"></div>
+    <div class="btn-row" style="justify-content:center"><button class="btn btn-ghost" style="width:100%" onclick="closeQR()">Close</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import {
+  connectWallet as _cw, hashFile,
+  registerFile, verifyFile, verifySignatureOnChain,
+  revokeHash, getRecordsByAddress, getTotalRecords,
+  encryptFile, decryptFile, encryptAndRegisterFile,
+  generateJWT, verifyJWT, downloadJWT,
+  etherscanTxUrl, etherscanAddressUrl
+} from "./blockchain.js";
+
+/* ── State ── */
+let W={connected:false,address:null,signer:null,ethers:null};
+let pFile=null,vFile=null,decFile=null,bFiles=[];
+let encEnabled=false;
+let wizStep=1;
+let lastResult=null;
+let vCount=0,encCount=0,jwtCount=0,allRecs=[];
+
+/* ── Theme ── */
+window.toggleTheme=()=>{
+  const t=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=t;
+  localStorage.setItem('cp-theme',t);
+};
+const saved=localStorage.getItem('cp-theme');
+if(saved)document.documentElement.dataset.theme=saved;
+
+/* ── Wallet ── */
+window.connectWallet=async()=>{
+  try{
+    const r=await _cw();
+    W={connected:true,...r};
+    document.getElementById('wdot').className='wdot on';
+    document.getElementById('wlbl').textContent=r.address.slice(0,6)+'…'+r.address.slice(-4);
+    document.getElementById('batch-btn').disabled=bFiles.length===0;
+    loadStats();loadHistory();toast('Wallet connected ✓');
+  }catch(e){toast(e.message||'Failed to connect',true);}
+};
+
+/* ── Navigation ── */
+window.goTab=(name,el)=>{
+  document.querySelectorAll('.np').forEach(t=>t.classList.remove('on'));
+  const btn=el||document.querySelector(`[data-tab="${name}"]`);
+  if(btn)btn.classList.add('on');
+  ['home','protect','verify','batch','jwt','decrypt','history'].forEach(n=>{
+    const p=document.getElementById('p-'+n);
+    if(p){p.classList.toggle('on',n===name);if(n===name){p.style.animationName='none';requestAnimationFrame(()=>p.style.animationName='');}}
+  });
+  if(name==='history')loadHistory();
+  if(name==='protect'&&wizStep===1){resetWizard();}
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
+/* ── Drag/drop ── */
+window.dzOn=(id,e)=>{e.preventDefault();document.getElementById(id).classList.add('over');};
+window.dzOff=(id,e)=>{e.preventDefault();document.getElementById(id).classList.remove('over');};
+window.dzDrop=(id,e,ctx)=>{e.preventDefault();document.getElementById(id).classList.remove('over');const f=e.dataTransfer.files[0];if(!f)return;if(ctx==='protect')pickProtectFile(f);else if(ctx==='verify')pickVerifyFile(f);else if(ctx==='decrypt')pickDecFile(f);};
+window.dzBatch=(e)=>{e.preventDefault();document.getElementById('dz-b').classList.remove('over');batchPick(e.dataTransfer.files);};
+window.dzJWT=(e)=>{e.preventDefault();document.getElementById('dz-jwt').classList.remove('over');loadJWT(e.dataTransfer.files[0]);};
+
+/* ── File chip helper ── */
+function mkChip(f,color,removeFn){
+  const sz=f.size<1048576?(f.size/1024).toFixed(1)+' KB':(f.size/1048576).toFixed(2)+' MB';
+  return `<div class="file-chip">
+    <div class="fc-row">
+      <div class="fc-icon${color?' '+color:''}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div style="flex:1;min-width:0"><div class="fc-name">${f.name}</div><div class="fc-size">${sz}</div></div>
+      <button class="fc-rm" onclick="${removeFn}()">Remove</button>
+    </div>
+  </div>`;
+}
+function mkChipWithHash(f,hash,removeFn){
+  const sz=f.size<1048576?(f.size/1024).toFixed(1)+' KB':(f.size/1048576).toFixed(2)+' MB';
+  return `<div class="file-chip">
+    <div class="fc-row">
+      <div class="fc-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div style="flex:1;min-width:0"><div class="fc-name">${f.name}</div><div class="fc-size">${sz}</div></div>
+      <button class="fc-rm" onclick="${removeFn}()">Remove</button>
+    </div>
+    <div class="fc-hash"><span title="${hash}">${hash}</span><button class="copy-btn" onclick="cp('${hash}')">COPY</button></div>
+  </div>`;
+}
+
+/* ── Protect wizard ── */
+window.pickProtectFile=async(f)=>{
+  if(!f)return;
+  pFile=f;
+  const hash=await hashFile(f);
+  document.getElementById('p-file-chip').innerHTML=mkChipWithHash(f,hash,'clearProtect');
+  document.getElementById('btn-to-step2').disabled=false;
+  document.getElementById('lbl-p').placeholder=f.name;
+};
+window.clearProtect=()=>{
+  pFile=null;
+  document.getElementById('p-file-chip').innerHTML='';
+  document.getElementById('p-file-chip-2').innerHTML='';
+  document.getElementById('btn-to-step2').disabled=true;
+  document.getElementById('fi-p').value='';
+};
+
+window.toggleEnc=()=>{
+  encEnabled=!encEnabled;
+  const wrap=document.getElementById('enc-wrap');
+  const pill=document.getElementById('enc-pill');
+  const icon=document.getElementById('enc-icon');
+  wrap.classList.toggle('active',encEnabled);
+  pill.classList.toggle('on',encEnabled);
+  if(encEnabled){icon.style.background='var(--cyan)';icon.style.borderColor='var(--cyan)';}
+  else{icon.style.background='';icon.style.borderColor='';}
+};
+
+function setWizProgress(step){
+  wizStep=step;
+  const prog={1:0,2:0.33,3:0.66,4:1}[step]||0;
+  document.getElementById('wiz-track').style.setProperty('--prog',prog);
+  [1,2,3,4].forEach(n=>{
+    const el=document.getElementById('wstep-'+n);
+    el.classList.remove('act','done');
+    if(n<step)el.classList.add('done');
+    if(n===step)el.classList.add('act');
+  });
+  document.getElementById('ws1').style.display=step===1?'':'none';
+  document.getElementById('ws2').style.display=step===2?'':'none';
+  document.getElementById('ws3').style.display=step===3?'':'none';
+  document.getElementById('ws4').style.display=step===4?'':'none';
+  // Done step marks all done
+  if(step===4){[1,2,3,4].forEach(n=>{const el=document.getElementById('wstep-'+n);el.classList.remove('act');el.classList.add('done');});}
+}
+
+function resetWizard(){
+  pFile=null;encEnabled=false;
+  document.getElementById('p-file-chip').innerHTML='';
+  document.getElementById('p-file-chip-2').innerHTML='';
+  document.getElementById('btn-to-step2').disabled=true;
+  document.getElementById('fi-p').value='';
+  document.getElementById('lbl-p').value='';
+  document.getElementById('enc-wrap').classList.remove('active');
+  document.getElementById('enc-pill').classList.remove('on');
+  document.getElementById('enc-icon').style.background='';
+  document.getElementById('enc-icon').style.borderColor='';
+  encEnabled=false;
+  setWizProgress(1);
+  resetPS();
+}
+
+window.goWizStep=async(step)=>{
+  if(step===2){
+    if(!pFile){toast('Pick a file first',true);return;}
+    const hash=await hashFile(pFile);
+    document.getElementById('p-file-chip-2').innerHTML=mkChipWithHash(pFile,hash,'clearProtect');
+    setWizProgress(2);
+  } else if(step===3){
+    if(!W.connected){toast('Connect your wallet first',true);return;}
+    setWizProgress(3);
+    // Show enc row only if enabled
+    document.getElementById('ps-enc-row').style.display=encEnabled?'':'none';
+    runProtectFlow();
+  } else {
+    setWizProgress(step);
+  }
+};
+
+function setPS(id,state,msg){
+  const el=document.getElementById(id);
+  el.classList.remove('act','done');
+  if(state)el.classList.add(state);
+  const s=document.getElementById(id+'-s');
+  if(s)s.textContent=msg;
+  const icon=el.querySelector('.ps-icon');
+  if(state==='done'){
+    icon.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+  } else if(state==='act'){
+    icon.innerHTML=`<span class="spin"></span>`;
+  }
+}
+function resetPS(){
+  ['ps-hash','ps-enc-row','ps-sign','ps-chain','ps-jwt'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove('act','done');
+    const s=document.getElementById(id+'-s');
+    if(s)s.textContent='Waiting…';
+    const icon=el.querySelector('.ps-icon');
+    if(!icon)return;
+    const icons={
+      'ps-hash':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+      'ps-enc-row':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+      'ps-sign':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      'ps-chain':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+      'ps-jwt':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>'
+    };
+    if(icons[id])icon.innerHTML=icons[id];
+  });
+}
+
+async function runProtectFlow(){
+  const label=document.getElementById('lbl-p').value.trim()||pFile.name;
+  const errEl=document.getElementById('process-error');
+  errEl.style.display='none';
+  try{
+    // Step: hash
+    setPS('ps-hash','act','Computing…');
+    await new Promise(r=>setTimeout(r,300));
+    let hash,signature,tx,receipt,keyB64,ivB64,encBlob;
+
+    if(encEnabled){
+      setPS('ps-hash','done','Done');
+      setPS('ps-enc-row','act','Encrypting…');
+      await new Promise(r=>setTimeout(r,400));
+      const res=await encryptAndRegisterFile(pFile,label,W.signer,W.ethers);
+      setPS('ps-enc-row','done','Done');
+      setPS('ps-sign','done','Signed');
+      setPS('ps-chain','act','Waiting for confirmation…');
+      hash=res.hash;signature=res.signature;tx=res.tx;receipt=res.receipt;
+      keyB64=res.keyBase64;ivB64=res.ivBase64;encBlob=res.encryptedBlob;
+      // Download encrypted file automatically
+      const dlUrl=URL.createObjectURL(encBlob);
+      const a=document.createElement('a');a.href=dlUrl;a.download=pFile.name+'.enc';a.click();URL.revokeObjectURL(dlUrl);
+      setPS('ps-chain','done','Confirmed block '+receipt.blockNumber);
+      encCount++;
+    } else {
+      const h=await hashFile(pFile);
+      hash=h;
+      setPS('ps-hash','done','Done');
+      setPS('ps-sign','act','Waiting for MetaMask…');
+      const res=await registerFile(pFile,label,W.signer,W.ethers);
+      hash=res.hash;signature=res.signature;tx=res.tx;receipt=res.receipt;
+      setPS('ps-sign','done','Signed');
+      setPS('ps-chain','act','Waiting for confirmation…');
+      setPS('ps-chain','done','Confirmed block '+receipt.blockNumber);
+    }
+
+    // JWT
+    setPS('ps-jwt','act','Generating…');
+    const jwt=await generateJWT({hash,label,walletAddress:W.address,txHash:tx.hash,blockNumber:receipt.blockNumber,ecdsaSignature:signature});
+    setPS('ps-jwt','done','Issued');
+    jwtCount++;updStats();
+
+    const p=jwt.split('.');
+    const url=etherscanTxUrl(tx.hash);
+
+    const encSection=encEnabled?`
+      <div class="key-display"><div class="kdl">AES-256 Key — SAVE THIS!</div><button class="kdc" onclick="cp('${keyB64}')">COPY</button><div class="kdv">${keyB64}</div></div>
+      <div class="key-display"><div class="kdl">IV — SAVE THIS!</div><button class="kdc" onclick="cp('${ivB64}')">COPY</button><div class="kdv">${ivB64}</div></div>
+      <div class="warn">⚠ Without Key + IV, the encrypted file cannot be recovered by anyone — ever. Save them now.</div>
+    `:'';
+
+    document.getElementById('done-content').innerHTML=`
+      <div class="done-header">
+        <div class="done-circle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div>
+          <div class="done-title">${encEnabled?'Encrypted, signed':'Signed'} and registered</div>
+          <div class="done-sub">${encEnabled?'AES-256-GCM · ':''}ECDSA · Ethereum Sepolia · JWT issued</div>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-row"><span class="mk">File</span><span class="mv">${label}</span></div>
+        <div class="meta-row"><span class="mk">Hash</span><span class="mv">${hash}</span></div>
+        <div class="meta-row"><span class="mk">Signed by</span><span class="mv">${W.address}</span></div>
+        <div class="meta-row"><span class="mk">ECDSA</span><span class="mv"><span class="badge b-g">✓ VALID</span></span></div>
+        <div class="meta-row"><span class="mk">Block</span><span class="mv">${receipt.blockNumber}</span></div>
+        ${encEnabled?`<div class="meta-row"><span class="mk">Encryption</span><span class="mv"><span class="badge b-t">AES-256-GCM</span></span></div>`:''}
+      </div>
+      ${encSection}
+      <div class="jwt-token-display">
+        <div class="jtd-header">
+          <div class="jtd-label">JWT Certificate — HMAC-SHA256</div>
+          <button class="jtd-copy" onclick="cp('${jwt.replace(/'/g,"\\'")}')">COPY TOKEN</button>
+        </div>
+        <div class="jtd-body"><span class="jp1">${p[0]}</span>.<span class="jp2">${p[1]}</span>.<span class="jp3">${p[2]}</span></div>
+      </div>
+      <div class="done-actions">
+        <button class="dact a" onclick="dlJWT('${jwt.replace(/'/g,"\\'")}','${label.replace(/'/g,'')}')">⬇ Download JWT</button>
+        <a class="dact" href="${url}" target="_blank">↗ Etherscan</a>
+        <button class="dact" onclick="showQR('${hash}','${label.replace(/'/g,'')}')">⬜ QR Code</button>
+        <button class="dact" onclick="dlProof('${hash}','${label.replace(/'/g,'')}','${tx.hash}','${receipt.blockNumber}','${new Date().toISOString()}','${W.address}','${encEnabled?'Yes':'No'}')">⬇ Proof PDF</button>
+      </div>
+    `;
+
+    setWizProgress(4);
+    loadStats();loadHistory();
+    toast(`${encEnabled?'Encrypted + ':''}Registered — JWT issued ✓`);
+
+    // After done, show next-step strip below card
+    document.getElementById('ws4').insertAdjacentHTML('afterend',nextHTML([
+      {t:'Verify this file',fn:`goTab('verify',document.querySelector('[data-tab=verify]'))`,i:'✓',c:'g'},
+      {t:'Protect another',fn:`resetAndProtect()`,i:'🔒'},
+      {t:'View history',fn:`goTab('history',document.querySelector('[data-tab=history]'))`,i:'🕐'},
+    ]));
+
+  }catch(e){
+    errEl.textContent=e?.reason||e?.message||'Something went wrong';
+    errEl.style.display='block';
+    toast(e?.reason||e?.message||'Failed',true);
+  }
+}
+
+window.resetAndProtect=()=>{resetWizard();goTab('protect',document.querySelector('[data-tab=protect]'));};
+
+function nextHTML(acts){
+  return `<div class="next-strip"><div class="ns-label">What's next?</div><div class="ns-row">${acts.map(a=>`<button class="ns-btn${a.c?' '+a.c:''}" onclick="${a.fn}">${a.i||''} ${a.t}</button>`).join('')}</div></div>`;
+}
+
+/* ── JWT helpers ── */
+window.dlJWT=(t,l)=>{downloadJWT(t,l);toast('JWT downloaded ✓');};
+window.loadJWT=async(f)=>{if(!f)return;const t=await f.text();document.getElementById('jwt-input').value=t.trim();toast('JWT loaded — click Verify');};
+
+/* ── JWT Verify ── */
+window.doVerifyJWT=async()=>{
+  const token=document.getElementById('jwt-input').value.trim();
+  if(!token){toast('Paste a JWT token first',true);return;}
+  const el=document.getElementById('jwt-result');
+  el.innerHTML=`<div class="r-gold"><div class="r-title"><span class="spin" style="border-top-color:var(--amber)"></span> Verifying…</div></div>`;
+  const {valid,payload,error}=await verifyJWT(token);
+  if(!valid){el.innerHTML=`<div class="r-bad"><div class="r-title">JWT is INVALID</div><p style="font-size:12px;color:var(--t3)">${error}</p></div>`;return;}
+  const issued=new Date(payload.iat*1000).toLocaleString();
+  const expires=new Date(payload.exp*1000).toLocaleString();
+  el.innerHTML=`
+    <div class="r-gold">
+      <div class="r-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 14l2 2 4-4"/></svg>JWT certificate VALID</div>
+      <div class="jwt-claims">
+        <div class="jclaim"><span class="jkey">fileHash</span><span class="jval">${payload.fileHash||'—'}</span></div>
+        <div class="jclaim"><span class="jkey">label</span><span class="jval">${payload.label||'—'}</span></div>
+        <div class="jclaim"><span class="jkey">registrant</span><span class="jval">${payload.registrant||'—'}</span></div>
+        <div class="jclaim"><span class="jkey">txHash</span><span class="jval">${payload.txHash||'—'}</span></div>
+        <div class="jclaim"><span class="jkey">blockNumber</span><span class="jval">${payload.blockNumber||'—'}</span></div>
+        <div class="jclaim"><span class="jkey">issued at</span><span class="jval">${issued}</span></div>
+        <div class="jclaim"><span class="jkey">expires</span><span class="jval">${expires}</span></div>
+        <div class="jclaim"><span class="jkey">algorithm</span><span class="jval">HMAC-SHA256 (HS256)</span></div>
+      </div>
+      ${nextHTML([
+        ...(payload.txHash&&payload.txHash!=='—'?[{t:'Etherscan',fn:`window.open('https://sepolia.etherscan.io/tx/${payload.txHash}','_blank')`,i:'↗'}]:[]),
+        {t:'Verify the file',fn:`goTab('verify',document.querySelector('[data-tab=verify]'))`,i:'✓',c:'g'}
+      ])}
+    </div>`;
+};
+
+/* ── Verify ── */
+window.pickVerifyFile=async(f)=>{
+  if(!f)return;vFile=f;
+  const hash=await hashFile(f);
+  document.getElementById('v-chip').innerHTML=mkChipWithHash(f,hash,'clearVerify');
+  document.getElementById('ver-btn').disabled=false;
+  document.getElementById('ver-result').innerHTML='';
+};
+window.clearVerify=()=>{vFile=null;document.getElementById('v-chip').innerHTML='';document.getElementById('ver-result').innerHTML='';document.getElementById('ver-btn').disabled=true;document.getElementById('fi-v').value='';};
+
+window.doVerify=async()=>{
+  if(!vFile)return;
+  const btn=document.getElementById('ver-btn');
+  btn.innerHTML=`<span class="spin"></span> Verifying…`;btn.disabled=true;
+  try{
+    const r=await verifyFile(vFile);
+    vCount++;updStats();
+    const el=document.getElementById('ver-result');
+    if(r.exists){
+      let sigHTML='';
+      try{const sr=await verifySignatureOnChain(r.hash);sigHTML=`<div class="meta-row"><span class="mk">Signature</span><span class="mv">${sr.valid?'<span class="badge b-g">✓ VALID</span>':'<span class="badge b-r">✗ INVALID</span>'} ${sr.recoveredSigner.slice(0,6)+'…'+sr.recoveredSigner.slice(-4)}</span></div>`;}
+      catch{sigHTML='';}
+      const isEnc=r.label&&r.label.includes('[AES-256');
+      el.innerHTML=`<div class="r-ok">
+        <div class="r-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Authentic — verified on-chain</div>
+        <div class="meta-grid">
+          <div class="meta-row"><span class="mk">Hash</span><span class="mv">${r.hash}</span></div>
+          <div class="meta-row"><span class="mk">Label</span><span class="mv">${r.label||'—'} ${isEnc?'<span class="badge b-t">AES-256</span>':''}</span></div>
+          <div class="meta-row"><span class="mk">Registered</span><span class="mv">${r.registrant.slice(0,6)+'…'+r.registrant.slice(-4)}</span></div>
+          <div class="meta-row"><span class="mk">Date</span><span class="mv">${r.timestamp.toLocaleString()}</span></div>
+          ${sigHTML}
+        </div>
+        ${nextHTML([
+          {t:'Etherscan',fn:`window.open('${etherscanAddressUrl(r.registrant)}','_blank')`,i:'↗'},
+          {t:'QR Code',fn:`showQR('${r.hash}','${(r.label||'File').replace(/'/g,'')}')`,i:'⬜'},
+          {t:'Proof PDF',fn:`dlProof('${r.hash}','${(r.label||'File').replace(/'/g,'')}','—','—','${r.timestamp.toISOString()}','${r.registrant}','No')`,i:'⬇'},
+          {t:'Protect another',fn:`goTab('protect',document.querySelector('[data-tab=protect]'))`,i:'🔒'}
+        ])}
+      </div>`;
+    }else{
+      el.innerHTML=`<div class="r-bad"><div class="r-title">Not found — possible tampering</div><p style="font-size:11px;color:var(--t3)">No matching hash on the blockchain. File may have been modified.</p><div class="meta-grid" style="margin-top:10px"><div class="meta-row"><span class="mk">Hash</span><span class="mv">${r.hash}</span></div></div></div>`;
+    }
+  }catch(e){toast(e.message||'Verification failed',true);}
+  btn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg> Verify hash and signature`;
+  btn.disabled=false;
+};
+
+/* ── Decrypt ── */
+window.pickDecFile=(f)=>{if(!f)return;decFile=f;document.getElementById('dec-chip').innerHTML=mkChip(f,'teal','clearDec');document.getElementById('dec-btn').disabled=false;document.getElementById('dec-result').innerHTML='';};
+window.clearDec=()=>{decFile=null;document.getElementById('dec-chip').innerHTML='';document.getElementById('dec-result').innerHTML='';document.getElementById('dec-btn').disabled=true;document.getElementById('fi-dec').value='';};
+
+window.doDecrypt=async()=>{
+  if(!decFile)return;
+  const key=document.getElementById('dec-key').value.trim();
+  const iv=document.getElementById('dec-iv').value.trim();
+  const name=document.getElementById('dec-name').value.trim()||'decrypted_file';
+  if(!key||!iv){toast('Please provide both key and IV',true);return;}
+  const btn=document.getElementById('dec-btn');btn.innerHTML=`<span class="spin"></span> Decrypting…`;btn.disabled=true;
+  try{
+    const dec=await decryptFile(decFile,key,iv,name,'application/octet-stream');
+    const url=URL.createObjectURL(dec);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
+    document.getElementById('dec-result').innerHTML=`<div class="r-teal"><div class="r-title">File decrypted ✓</div><p style="font-size:11px;color:var(--cyan)">Downloaded as <strong>${name}</strong>.</p></div>`;
+    toast('Decrypted and downloaded ✓');
+  }catch{
+    document.getElementById('dec-result').innerHTML=`<div class="r-bad"><div class="r-title">Decryption failed</div><p style="font-size:11px;color:var(--t3)">Wrong key, wrong IV, or corrupted file.</p></div>`;
+    toast('Decryption failed — check key and IV',true);
+  }
+  btn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Decrypt and download`;
+  btn.disabled=false;
+};
+
+/* ── Batch ── */
+window.batchPick=async(files)=>{
+  const arr=Array.from(files).slice(0,10);
+  for(const f of arr){const h=await hashFile(f);bFiles.push({file:f,hash:h,status:'pending'});}
+  renderBatch();document.getElementById('batch-btn').disabled=!W.connected||bFiles.length===0;
+};
+const fmtSz=f=>f.size<1048576?(f.size/1024).toFixed(1)+' KB':(f.size/1048576).toFixed(2)+' MB';
+function renderBatch(){
+  document.getElementById('batch-list').innerHTML=bFiles.map((b,i)=>`
+    <div class="bi" id="bi-${i}">
+      <div class="bi-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue-l)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div style="flex:1;min-width:0"><div class="bi-n">${b.file.name}</div><div class="bi-s">${fmtSz(b.file)}</div></div>
+      <span class="bi-st s-${b.status==='done'?'d':b.status==='error'?'e':'p'}" id="bs-${i}">${b.status}</span>
+      <button class="bi-rm" onclick="rmBatch(${i})">✕</button>
+    </div>`).join('');
+}
+window.rmBatch=(i)=>{bFiles.splice(i,1);renderBatch();document.getElementById('batch-btn').disabled=!W.connected||bFiles.length===0;};
+window.clearBatch=()=>{bFiles=[];renderBatch();document.getElementById('batch-result').innerHTML='';};
+window.doBatch=async()=>{
+  if(!W.connected){toast('Connect wallet first',true);return;}
+  const btn=document.getElementById('batch-btn');btn.innerHTML=`<span class="spin"></span> Signing…`;btn.disabled=true;
+  let done=0,errors=0;
+  for(let i=0;i<bFiles.length;i++){
+    const s=document.getElementById(`bs-${i}`);s.textContent='signing…';s.className='bi-st s-p';
+    try{
+      const res=await registerFile(bFiles[i].file,bFiles[i].file.name,W.signer,W.ethers);
+      await generateJWT({hash:res.hash,label:bFiles[i].file.name,walletAddress:W.address,txHash:res.tx.hash,blockNumber:res.receipt.blockNumber,ecdsaSignature:res.signature});
+      jwtCount++;updStats();
+      bFiles[i].status='done';done++;s.textContent='done';s.className='bi-st s-d';
+    }catch{bFiles[i].status='error';errors++;s.textContent='error';s.className='bi-st s-e';}
+  }
+  document.getElementById('batch-result').innerHTML=`
+    <div class="r-ok" style="margin-top:12px"><div class="r-title">Batch complete</div><p style="font-size:11px;color:var(--t3)">${done} registered${errors?`, ${errors} failed`:''}</p></div>
+    ${nextHTML([
+      {t:'View history',fn:`goTab('history',document.querySelector('[data-tab=history]'))`,i:'🕐'},
+      {t:'Verify a file',fn:`goTab('verify',document.querySelector('[data-tab=verify]'))`,i:'✓',c:'g'}
+    ])}`;
+  btn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg> Sign and register all`;
+  btn.disabled=false;loadStats();loadHistory();toast(`${done} file(s) registered ✓`);
+};
+
+/* ── History ── */
+async function loadHistory(){
+  if(!W.connected)return;
+  const el=document.getElementById('history-content');
+  el.innerHTML=`<div class="empty"><div class="empty-ico">⏳</div><div>Loading…</div></div>`;
+  try{
+    allRecs=await getRecordsByAddress(W.address);
+    document.getElementById('hs-mine').textContent=allRecs.length;
+    renderHistory(allRecs);
+  }catch{el.innerHTML=`<div class="empty"><div>Error loading records</div></div>`;}
+}
+function renderHistory(recs){
+  const el=document.getElementById('history-content');
+  if(!recs.length){el.innerHTML=`<div class="empty"><div class="empty-ico">📄</div><div>No matching records</div></div>`;return;}
+  el.innerHTML=`<div class="tl">${recs.map(r=>{
+    const isEnc=r.label&&r.label.includes('[AES-256');
+    return `<div class="tl-item">
+      <div class="tl-dot${r.hasSignature?' signed':''}"></div>
+      <div class="tl-date">${r.timestamp.toLocaleString()} ${r.hasSignature?'<span class="badge b-g">SIGNED</span>':''} ${isEnc?'<span class="badge b-t">AES-256</span>':''} <span class="badge b-a">JWT</span></div>
+      <div class="tl-name">${r.label||'Unlabeled'}</div>
+      <div class="tl-hash">${r.hash}</div>
+      <div class="tl-acts">
+        <button class="mb" onclick="cp('${r.hash}')">Copy hash</button>
+        <button class="mb" onclick="showQR('${r.hash}','${(r.label||'File').replace(/'/g,'')}')">QR</button>
+        <button class="mb" onclick="dlProof('${r.hash}','${(r.label||'File').replace(/'/g,'')}','—','—','${r.timestamp.toISOString()}','${r.registrant}','${isEnc?'Yes':'No'}')">Proof PDF</button>
+        <button class="mb danger" onclick="doRevoke('${r.hash}')">Revoke</button>
+      </div>
+    </div>`;}).join('')}</div>`;
+}
+window.filterHistory=()=>{
+  const q=(document.getElementById('hist-q').value||'').toLowerCase();
+  const f=document.getElementById('hist-f').value;
+  const now=Date.now();
+  renderHistory(allRecs.filter(r=>{
+    const mq=!q||r.hash.toLowerCase().includes(q)||(r.label||'').toLowerCase().includes(q)||(r.registrant||'').toLowerCase().includes(q);
+    let mf=true;
+    if(f==='signed')mf=r.hasSignature;
+    else if(f==='encrypted')mf=r.label&&r.label.includes('[AES-256');
+    else if(f==='today')mf=(now-r.timestamp.getTime())<86400000;
+    else if(f==='week')mf=(now-r.timestamp.getTime())<604800000;
+    return mq&&mf;
+  }));
+};
+window.doRevoke=async(hash)=>{
+  if(!W.connected){toast('Connect wallet first',true);return;}
+  if(!confirm('Revoke this hash? This cannot be undone.'))return;
+  try{await revokeHash(hash,W.signer,W.ethers);toast('Hash revoked');loadHistory();loadStats();}
+  catch(e){toast(e?.reason||e?.message||'Revoke failed',true);}
+};
+
+/* ── Stats ── */
+function updStats(){
+  document.getElementById('hs-ver').textContent=vCount;
+  document.getElementById('hs-enc').textContent=encCount;
+  document.getElementById('hs-jwt').textContent=jwtCount;
+}
+async function loadStats(){
+  try{const t=await getTotalRecords();document.getElementById('hs-total').textContent=t;}catch{}
+}
+
+/* ── QR ── */
+window.showQR=(hash,label)=>{
+  document.getElementById('qr-lbl').textContent=label;
+  document.getElementById('qr-hash').textContent=hash;
+  document.getElementById('qr-cont').innerHTML='';
+  new QRCode(document.getElementById('qr-cont'),{text:`https://sepolia.etherscan.io/search?q=${hash}`,width:170,height:170,colorDark:'#060810',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  document.getElementById('qr-modal').classList.add('open');
+};
+window.closeQR=()=>document.getElementById('qr-modal').classList.remove('open');
+
+/* ── Proof PDF ── */
+window.dlProof=(hash,label,txHash,block,isoDate,signer,encrypted)=>{
+  const date=new Date(isoDate).toLocaleString();
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Proof — ${label}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;max-width:680px;margin:44px auto;color:#0d1020;font-size:13px;line-height:1.7;padding:0 24px}
+  h1{font-size:26px;font-weight:800;letter-spacing:-1px;margin-bottom:4px}.sub{color:#6b7280;margin-bottom:22px;font-size:12px}
+  .badges{display:flex;gap:7px;margin-bottom:24px;flex-wrap:wrap}.badge{padding:3px 12px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.4px}
+  .bg{background:#dcfce7;color:#166534;border:1px solid #86efac}.bp{background:#ede9fe;color:#5b21b6;border:1px solid #a78bfa}.bt{background:#cffafe;color:#155e75;border:1px solid #67e8f9}.ba{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+  .sec{border:1px solid #e5e7eb;border-radius:12px;padding:18px 22px;margin-bottom:14px}
+  .sec h2{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#5078ff;margin-bottom:10px;letter-spacing:1.2px;text-transform:uppercase}
+  .row{display:flex;gap:10px;margin-bottom:5px;font-size:11px}
+  .k{color:#9ca3af;min-width:100px;font-weight:600}.v{font-family:'JetBrains Mono',monospace;word-break:break-all;font-size:10px}
+  ol{padding-left:16px}ol li{margin-bottom:4px;font-size:12px}
+  .foot{margin-top:30px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:10px;color:#9ca3af;text-align:center;font-family:'JetBrains Mono',monospace}
+  @media print{body{margin:16px auto}}</style></head><body>
+  <h1>Proof of Registration</h1><div class="sub">ChainProof v4.0 — Unified Protection Flow</div>
+  <div class="badges"><span class="badge bg">ETHEREUM SEPOLIA</span><span class="badge bp">ECDSA SIGNATURE</span>${encrypted==='Yes'?'<span class="badge bt">AES-256-GCM</span>':''}<span class="badge ba">JWT CERTIFICATE</span></div>
+  <div class="sec"><h2>File</h2>
+    <div class="row"><span class="k">Label</span><span class="v">${label}</span></div>
+    <div class="row"><span class="k">SHA-256 Hash</span><span class="v">${hash}</span></div>
+    <div class="row"><span class="k">Encrypted</span><span class="v">${encrypted==='Yes'?'Yes — AES-256-GCM':'No'}</span></div>
+    <div class="row"><span class="k">Registered</span><span class="v">${date}</span></div>
+  </div>
+  <div class="sec"><h2>Signature</h2>
+    <div class="row"><span class="k">Signed by</span><span class="v">${signer}</span></div>
+    <div class="row"><span class="k">Algorithm</span><span class="v">ECDSA secp256k1</span></div>
+    <div class="row"><span class="k">Status</span><span class="v" style="color:#166534;font-weight:700">VALID</span></div>
+  </div>
+  <div class="sec"><h2>JWT Certificate</h2>
+    <div class="row"><span class="k">Algorithm</span><span class="v">HMAC-SHA256 (HS256)</span></div>
+    <div class="row"><span class="k">Verify</span><span class="v">JWT tab → paste token → works offline</span></div>
+  </div>
+  <div class="sec"><h2>Blockchain</h2>
+    <div class="row"><span class="k">Network</span><span class="v">Ethereum Sepolia — Chain ID 11155111</span></div>
+    <div class="row"><span class="k">Transaction</span><span class="v">${txHash}</span></div>
+    <div class="row"><span class="k">Block</span><span class="v">${block}</span></div>
+  </div>
+  <div class="sec"><h2>How to verify</h2><ol>
+    <li>Verify tab → drop file → click Verify</li>
+    <li>JWT tab → paste token → Verify JWT (offline)</li>
+    <li>sepolia.etherscan.io → search the hash or tx</li>
+  </ol></div>
+  <div class="foot">ChainProof v4.0 | ${date}</div>
+  <script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+};
+
+window.cp=(t)=>{navigator.clipboard.writeText(t);toast('Copied!');};
+function toast(msg,err=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.borderColor=err?'var(--red-b)':'var(--b2)';
+  el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
+}
+loadStats();
+</script>
+</body>
+</html>
